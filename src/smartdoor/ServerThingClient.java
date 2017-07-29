@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import com.thingworx.communications.client.ClientConfigurator;
 import com.thingworx.communications.client.ConnectedThingClient;
 import com.thingworx.communications.client.things.VirtualThing;
-import com.thingworx.types.properties.Property;
 
 public class ServerThingClient extends ConnectedThingClient {
 

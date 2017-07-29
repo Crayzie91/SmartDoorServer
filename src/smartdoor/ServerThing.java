@@ -1,9 +1,5 @@
 package smartdoor;
 
-import java.util.Random;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,16 +9,12 @@ import com.thingworx.metadata.PropertyDefinition;
 import com.thingworx.metadata.annotations.ThingworxPropertyDefinition;
 import com.thingworx.metadata.annotations.ThingworxPropertyDefinitions;
 import com.thingworx.metadata.annotations.ThingworxServiceDefinition;
-import com.thingworx.metadata.annotations.ThingworxServiceParameter;
 import com.thingworx.metadata.annotations.ThingworxServiceResult;
 import com.thingworx.relationships.RelationshipTypes.ThingworxEntityTypes;
-import com.thingworx.types.InfoTable;
 import com.thingworx.types.primitives.IPrimitiveType;
 import com.thingworx.types.primitives.IntegerPrimitive;
 import com.thingworx.types.primitives.NumberPrimitive;
 import com.thingworx.types.primitives.StringPrimitive;
-import com.thingworx.types.properties.Property;
-
 
 /**
 Aspects:	
@@ -71,6 +63,17 @@ Aspects:
 			                    		  "isReadOnly:FALSE", 
 			                    		  "pushType:ALWAYS", 
 			                              "defaultValue:0"}),
+
+	@ThingworxPropertyDefinition(name="Test",       
+			                     description="TestString",
+			                     baseType="STRING",
+			                     aspects={"dataChangeType:VALUE",
+			                    		  "dataChangeThreshold:0",
+			                    		  "cacheTime:0", 
+			                    		  "isPersistent:FALSE", 
+			                    		  "isReadOnly:FALSE", 
+			                    		  "pushType:ALWAYS", 
+			                              "defaultValue:0"}),
 })
 
 
@@ -108,6 +111,36 @@ public class ServerThing extends VirtualThing {
 //			LOG.warn("Could not ser default value for SetPoint");
 //		}
 	}
+	/**
+	 * This Method is used to read a Property of a Thing on the Thingworx Platform.
+	 * 
+	 * @param ServerName Name of the ServerThing
+	 * @param PropertyName	Name of the Property to change
+	 * @return Returns Object that contains the read value
+	 * @throws Exception
+	 */
+	public Object getProperty(String ServerName, String PropertyName) throws Exception {
+		Object var = this.ClientHandle.readProperty(ThingworxEntityTypes.Things, ServerName, PropertyName, 10000).getReturnValue();	
+		LOG.info("{} was set. New Value: {}", this.ServerName, var);
+		return var;
+	}
+	
+	/**
+	 * This Method is used to write a Property of a Thing on the Thingworx Platform.
+	 * Value is casted to a generic type for further use.
+	 * 
+	 * @param ServerName Name of the ServerThing
+	 * @param PropertyName	Name of the Property to change
+	 * @param value	New Value of the Property
+	 * @throws Exception
+	 */
+	@SuppressWarnings("rawtypes")
+	public void setProperty(String ServerName, String PropertyName, Object value) throws Exception {
+		IPrimitiveType var=(IPrimitiveType)value;
+		
+		this.ClientHandle.writeProperty(ThingworxEntityTypes.Things, ServerName, PropertyName, var, 1000);
+		LOG.info("{} was set. New Value: {}", this.ServerName, var);
+	}
 	
 	/**
 	 * This method provides a common interface amongst VirtualThings for processing
@@ -129,44 +162,12 @@ public class ServerThing extends VirtualThing {
 	@Override
 	public void processPropertyWrite(PropertyDefinition property, @SuppressWarnings("rawtypes") IPrimitiveType value) throws Exception {
 		String propName = property.getName();
-		System.out.println(propName);
-		System.out.println("Clients connected was set to: "+value.getValue());
-	}
-	
-	/**
-	 * This Method is used to read a Property of a Thing on the Thingworx Platform.
-	 * 
-	 * @param ServerName Name of the ServerThing
-	 * @param PropertyName	Name of the Property to change
-	 * @return Returns Object that contains the read value
-	 * @throws Exception
-	 */
-	public Object getProperty(String ServerName, String PropertyName) throws Exception {
-		Object var = this.ClientHandle.readProperty(ThingworxEntityTypes.Things, ServerName, PropertyName, 10000).getReturnValue();	
-		return var;
-	}
-	
-	/**
-	 * This Method is used to write a Property of a Thing on the Thingworx Platform.
-	 * Value is casted to a primitive based on its Type.
-	 * 
-	 * @param ServerName Name of the ServerThing
-	 * @param PropertyName	Name of the Property to change
-	 * @param value	New Value of the Property
-	 * @throws Exception
-	 */
-	@SuppressWarnings("rawtypes")
-	public void setProperty(String ServerName, String PropertyName, Object value) throws Exception {
-		IPrimitiveType var=null;
-		if(value instanceof Integer)
-			var = IntegerPrimitive.convertFromObject(value);
-		else if (value instanceof Double)
-			var = NumberPrimitive.convertFromObject(value);
-		else if (value instanceof String)
-			var = StringPrimitive.convertFromObject(value);
+		setProperty(this.ServerName,propName, value);
 		
-		this.ClientHandle.writeProperty(ThingworxEntityTypes.Things, ServerName, PropertyName, var, 1000);
+		LOG.info("{} was set. New Value: {}", propName, value);
 	}
+	
+	
 	
 	/** The following annotation makes a method available to the 
 	 	ThingWorx Server for remote invocation.  The annotation includes the
@@ -179,6 +180,23 @@ public class ServerThing extends VirtualThing {
  	public boolean addClient() throws Exception {
 		Object var = getProperty(this.ServerName,"ClientsConnected");
 		var=(Double)var+1;
+		setProperty(this.ServerName,"ClientsConnected", var);
+		
+		LOG.info("{} was set. New Value: {}", this.ServerName, var);
+		return true;
+	}
+	
+	@ThingworxServiceDefinition(name="removeClient", description="Decrements the ClientsConnected Property of the ServerThing")
+	@ThingworxServiceResult(name="result", description="TRUE if excecution was successfull.", baseType="BOOLEAN")
+ 	public boolean removeClient() throws Exception {
+		Object var = getProperty(this.ServerName,"ClientsConnected");
+		
+		if(var.equals(0)) {
+			LOG.info("All Clients are disconnected.");
+			return false;
+		}
+		
+		var=(Double)var-1;
 		setProperty(this.ServerName,"ClientsConnected", var);
 		
 		LOG.info("{} was set. New Value: {}", this.ServerName, var);
