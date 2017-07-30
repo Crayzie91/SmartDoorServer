@@ -1,5 +1,6 @@
 package smartdoor;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
@@ -61,9 +62,10 @@ public class ServerThingClient extends ConnectedThingClient {
 				String timeStamp = new SimpleDateFormat("ddMM_HHmm").format(Calendar.getInstance().getTime());			
 				transfer.createFolder("/"+ThingName);
 				transfer.uploadImage("/"+ThingName+"/"+timeStamp+".jpg", "./Images/Test.jpg");
-				transfer.downloadImage("/"+ThingName+"/"+timeStamp+".jpg", "./Images/Downloads/"+timeStamp+".jpg");
+				File image = transfer.downloadImage("/"+ThingName+"/"+timeStamp+".jpg", "./Images/Downloads/"+timeStamp+".jpg");
 				transfer.getLinktoFile("/"+ThingName, "/"+ThingName+"/"+timeStamp+".jpg");
 				transfer.deleteFolder("/");
+				
 				
 				// Bind the VirtualThing to the client. This will tell the Platform that
 				// the RemoteThing is now connected and that it is ready to receive requests.
