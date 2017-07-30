@@ -105,23 +105,26 @@ public class FileTransferThing {
 	 * 
 	 * @param path2repository Path of Image to download from the repository.
 	 * @param path2save Path to save the downloaded image.
-	 * @return True if image was downloaded.
+	 * @return File handle of the image.
 	 */
-	public boolean downloadImage(String path2repository, String path2save) {		
+	public File downloadImage(String path2repository, String path2save) {	
+		File imgfile = new File(path2save);
+		
 		ValueCollection payload = new ValueCollection();
 		payload.put("path", new StringPrimitive(path2repository));
 		
 		try {
 			InfoTable info = client.invokeService(ThingworxEntityTypes.Things, "SmartDoorRepository", "LoadImage", payload, 5000);
 			ImagePrimitive bin = (ImagePrimitive) info.getLastRow().getPrimitive("Content");
-			BufferedImage img = ImageIO.read(new ByteArrayInputStream(bin.getValue()));
+			BufferedImage img = ImageIO.read(new ByteArrayInputStream(bin.getValue()));		
+			imgfile.getParentFile().mkdirs();
+			imgfile.createNewFile();
 			ImageIO.write(img, "jpg", new File(path2save));
 			LOG.info("Image {} was downloaded to {}.",path2repository, path2save);
 		} catch (Exception e) {
 			LOG.error("Image couldn't be uploaded. Error: {}",e);
-			return false;
 		}
-		return true;
+		return imgfile;
 	}
 	
 	public String getLinktoFile (String path2repository, String NameofFile) {
