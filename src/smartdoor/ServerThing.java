@@ -85,8 +85,8 @@ Aspects:
 public class ServerThing extends VirtualThing {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ServerThing.class);
-	private String ServerName = null;
-	private ConnectedThingClient ClientHandle = null;
+	private final String ServerName;
+
 
 	/**
 	 * A custom constructor. The Constructor is needed to call initializeFromAnnotations,
@@ -101,16 +101,51 @@ public class ServerThing extends VirtualThing {
 	 */
 	public ServerThing(String name, String description, ConnectedThingClient client) {
 		super(name, description, client);
-		this.ServerName=name;
-		this.ClientHandle=client;
+		ServerName=name;
 		this.initializeFromAnnotations();
-		
-//		try {
-//			this.setPropertyValue("SetPoint", new IntegerPrimitive(100));
-//		} catch (Exception e) {
-//			LOG.warn("Could not ser default value for SetPoint");
-//		}
 	}
+	
+	/**	
+	 * This method will get called when a connect or reconnect happens
+	 * The called functions synchronize the state and the properties of the virtual thing
+	 */
+	@Override
+	public void synchronizeState() {
+		super.synchronizeState();
+		// Send the property values to ThingWorx when a synchronization is required
+		super.syncProperties();
+	}
+	
+	/**
+	 * This method provides a common interface amongst the VirtualThings for processing
+	 * periodic requests. It is an opportunity to access data sources, update 
+	 * property values, push new values to the server, and take other actions.
+	 * 
+	 * @see VirtualThing#processScanRequest()
+	 */
+	@Override
+	public void processScanRequest() {
+		try {
+			this.updateSubscribedProperties(1000);
+			this.updateSubscribedEvents(1000);
+		}
+		catch(Exception eProcessing) {
+			System.out.println("Error Processing Scan Request");
+			}	
+	}
+	
+	/**
+	 * This function handles the property writes from the server
+ 	 * 
+ 	 * @see VirtualThing#processPropertyWrite(PropertyDefinition, IPrimitiveType)
+ 	 */
+	@Override
+	public void processPropertyWrite(PropertyDefinition property, @SuppressWarnings("rawtypes") IPrimitiveType value) throws Exception {
+		String propName = property.getName();
+		setProperty(propName,value);		
+		LOG.info("{} was set. New Value: {}", propName, value);
+	}
+		
 	/**
 	 * This Method is used to read a Property of a Thing on the Thingworx Platform.
 	 * 
@@ -119,8 +154,8 @@ public class ServerThing extends VirtualThing {
 	 * @return Returns Object that contains the read value
 	 * @throws Exception
 	 */
-	public Object getProperty(String ServerName, String PropertyName) throws Exception {
-		Object var = this.ClientHandle.readProperty(ThingworxEntityTypes.Things, ServerName, PropertyName, 10000).getReturnValue();	
+	public Object getClientProperty(String PropertyName) {
+		Object var = getProperty(PropertyName).getValue().getValue();	
 		LOG.info("{} was set. New Value: {}", this.ServerName, var);
 		return var;
 	}
@@ -129,79 +164,52 @@ public class ServerThing extends VirtualThing {
 	 * This Method is used to write a Property of a Thing on the Thingworx Platform.
 	 * Value is casted to a generic type for further use.
 	 * 
-	 * @param ServerName Name of the ServerThing
 	 * @param PropertyName	Name of the Property to change
 	 * @param value	New Value of the Property
 	 * @throws Exception
 	 */
-	@SuppressWarnings("rawtypes")
-	public void setProperty(String ServerName, String PropertyName, Object value) throws Exception {
-		IPrimitiveType var=(IPrimitiveType)value;
-		
-		this.ClientHandle.writeProperty(ThingworxEntityTypes.Things, ServerName, PropertyName, var, 1000);
-		LOG.info("{} was set. New Value: {}", this.ServerName, var);
+	public void setClientProperty(String PropertyName, Object value) throws Exception{
+		setProperty(PropertyName, value);		
+		LOG.info("{} was set. New Value: {}", this.ServerName, value);
 	}
 	
-	/**
-	 * This method provides a common interface amongst VirtualThings for processing
-	 * periodic requests. It is an opportunity to access data sources, update 
-	 * property values, push new values to the server, and take other actions.
+	/** 
+	 * This method decrements the ConnectedClient property.
 	 * 
-	 * @see VirtualThing#processScanRequest()
+	 * The following annotation makes a method available to the ThingWorx Server for remote invocation.
+	 * URL: https://developer.thingworx.com/resources/guides/thingworx-java-sdk-quickstart/creating-data-model
 	 */
-	@Override
-	public void processScanRequest() {
-
-	}
-	
-	/**
-	 * This is where property writes from the server are handled. 
- 	 * 
- 	 * @see VirtualThing#processPropertyWrite(PropertyDefinition, IPrimitiveType)
- 	 */
-	@Override
-	public void processPropertyWrite(PropertyDefinition property, @SuppressWarnings("rawtypes") IPrimitiveType value) throws Exception {
-		String propName = property.getName();
-		setProperty(this.ServerName,propName, value);
-		
-		LOG.info("{} was set. New Value: {}", propName, value);
-	}
-	
-	
-	
-	/** The following annotation makes a method available to the 
-	 	ThingWorx Server for remote invocation.  The annotation includes the
-	 	name of the server, the name and base types for its parameters, and 
-	 	the base type of its result.
-	 	URL: https://developer.thingworx.com/resources/guides/thingworx-java-sdk-quickstart/creating-data-model
-	*/
 	@ThingworxServiceDefinition(name="addClient", description="Increments the ClientsConnected Property of the ServerThing")
 	@ThingworxServiceResult(name="result", description="TRUE if excecution was successfull.", baseType="BOOLEAN")
  	public boolean addClient() throws Exception {
-		Object var = getProperty(this.ServerName,"ClientsConnected");
+		Object var = getClientProperty("ClientsConnected");
 		var=(Double)var+1;
-		setProperty(this.ServerName,"ClientsConnected", var);
+		setClientProperty("ClientsConnected", var);
 		
 		LOG.info("{} was set. New Value: {}", this.ServerName, var);
 		return true;
 	}
 	
+	/** 
+	 * This method increments the ConnectedClient property.
+	 * 
+	 * The following annotation makes a method available to the ThingWorx Server for remote invocation.  
+	 * URL: https://developer.thingworx.com/resources/guides/thingworx-java-sdk-quickstart/creating-data-model
+	 */
 	@ThingworxServiceDefinition(name="removeClient", description="Decrements the ClientsConnected Property of the ServerThing")
 	@ThingworxServiceResult(name="result", description="TRUE if excecution was successfull.", baseType="BOOLEAN")
  	public boolean removeClient() throws Exception {
-		Object var = getProperty(this.ServerName,"ClientsConnected");
+		Object var = getClientProperty("ClientsConnected");
 		
-		if(var.equals(0)) {
+		if((double)var<1) {
 			LOG.info("All Clients are disconnected.");
 			return false;
 		}
 		
 		var=(Double)var-1;
-		setProperty(this.ServerName,"ClientsConnected", var);
+		setClientProperty("ClientsConnected", var);
 		
 		LOG.info("{} was set. New Value: {}", this.ServerName, var);
 		return true;
 	}
-	
-	
 }
