@@ -58,13 +58,13 @@ public class ServerThingClient extends ConnectedThingClient {
 				ServerThing thing = new ServerThing(ThingName, "A basic server thing", client);
 				
 				// Create the FileTransferThing to handle data in the repository
-				FileTransferThing transfer = new FileTransferThing(RepositoryName, client);
-				String timeStamp = new SimpleDateFormat("ddMM_HHmm").format(Calendar.getInstance().getTime());			
-				transfer.createFolder("/"+ThingName);
-				transfer.uploadImage("/"+ThingName+"/"+timeStamp+".jpg", "./Images/Test.jpg");
-				File image = transfer.downloadImage("/"+ThingName+"/"+timeStamp+".jpg", "./Images/Downloads/"+timeStamp+".jpg");
-				transfer.getLinktoFile("/"+ThingName, "/"+ThingName+"/"+timeStamp+".jpg");
-				transfer.deleteFolder("/");
+//				FileTransferThing transfer = new FileTransferThing(RepositoryName, client);
+//				String timeStamp = new SimpleDateFormat("ddMM_HHmm").format(Calendar.getInstance().getTime());			
+//				transfer.createFolder("/"+ThingName);
+//				transfer.uploadImage("/"+ThingName+"/"+timeStamp+".jpg", "./Images/Test.jpg");
+//				File image = transfer.downloadImage("/"+ThingName+"/"+timeStamp+".jpg", "./Images/Downloads/"+timeStamp+".jpg");
+//				transfer.getLinktoFile("/"+ThingName, "/"+ThingName+"/"+timeStamp+".jpg");
+//				transfer.deleteFolder("/");
 				
 				
 				// Bind the VirtualThing to the client. This will tell the Platform that
