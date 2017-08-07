@@ -11,7 +11,6 @@ import com.thingworx.communications.client.ClientConfigurator;
 import com.thingworx.communications.client.ConnectedThingClient;
 import com.thingworx.communications.client.things.VirtualThing;
 
-
 public class ServerThingClient extends ConnectedThingClient {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ServerThingClient.class);

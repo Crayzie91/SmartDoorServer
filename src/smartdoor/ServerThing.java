@@ -9,8 +9,10 @@ import com.thingworx.metadata.PropertyDefinition;
 import com.thingworx.metadata.annotations.ThingworxPropertyDefinition;
 import com.thingworx.metadata.annotations.ThingworxPropertyDefinitions;
 import com.thingworx.metadata.annotations.ThingworxServiceDefinition;
+import com.thingworx.metadata.annotations.ThingworxServiceParameter;
 import com.thingworx.metadata.annotations.ThingworxServiceResult;
 import com.thingworx.relationships.RelationshipTypes.ThingworxEntityTypes;
+import com.thingworx.types.collections.ValueCollection;
 import com.thingworx.types.primitives.IPrimitiveType;
 import com.thingworx.types.primitives.IntegerPrimitive;
 import com.thingworx.types.primitives.NumberPrimitive;
@@ -50,9 +52,6 @@ Aspects:
 	 */
 @SuppressWarnings("serial")
 @ThingworxPropertyDefinitions(properties = {
-	// This property is setup for collecting time series data. Each value
-	// that is collected will be pushed to the platfrom from within the
-	// processScanRequest() method.
 	@ThingworxPropertyDefinition(name="ClientsConnected",       
 			                     description="Number of connected CLients",
 			                     baseType="NUMBER",
@@ -63,19 +62,7 @@ Aspects:
 			                    		  "isReadOnly:FALSE", 
 			                    		  "pushType:ALWAYS", 
 			                              "defaultValue:0"}),
-
-	@ThingworxPropertyDefinition(name="Test",       
-			                     description="TestString",
-			                     baseType="STRING",
-			                     aspects={"dataChangeType:VALUE",
-			                    		  "dataChangeThreshold:0",
-			                    		  "cacheTime:0", 
-			                    		  "isPersistent:FALSE", 
-			                    		  "isReadOnly:FALSE", 
-			                    		  "pushType:ALWAYS", 
-			                              "defaultValue:0"}),
 })
-
 
 /**
  * Implementation of the Remote ServerThing.
@@ -86,7 +73,8 @@ public class ServerThing extends VirtualThing {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ServerThing.class);
 	private final String ServerName;
-
+	private final ConnectedThingClient ClientHandle;
+	private boolean[] ConnectedClientsArr = new boolean[10];
 
 	/**
 	 * A custom constructor. The Constructor is needed to call initializeFromAnnotations,
@@ -101,7 +89,8 @@ public class ServerThing extends VirtualThing {
 	 */
 	public ServerThing(String name, String description, ConnectedThingClient client) {
 		super(name, description, client);
-		ServerName=name;
+		ServerName = name;
+		ClientHandle=client;
 		this.initializeFromAnnotations();
 	}
 	
@@ -149,7 +138,6 @@ public class ServerThing extends VirtualThing {
 	/**
 	 * This Method is used to read a Property of a Thing on the Thingworx Platform.
 	 * 
-	 * @param ServerName Name of the ServerThing
 	 * @param PropertyName	Name of the Property to change
 	 * @return Returns Object that contains the read value
 	 * @throws Exception
@@ -173,32 +161,56 @@ public class ServerThing extends VirtualThing {
 		LOG.info("{} was set. New Value: {}", this.ServerName, value);
 	}
 	
-	/** 
-	 * This method decrements the ConnectedClient property.
+	/**
+	 * This method returns an open ID.
 	 * 
-	 * The following annotation makes a method available to the ThingWorx Server for remote invocation.
-	 * URL: https://developer.thingworx.com/resources/guides/thingworx-java-sdk-quickstart/creating-data-model
+	 * @return Open ID for new Client
+	 * @throws Exception
+	 * @see https://developer.thingworx.com/resources/guides/thingworx-java-sdk-quickstart/creating-data-model
 	 */
-	@ThingworxServiceDefinition(name="addClient", description="Increments the ClientsConnected Property of the ServerThing")
-	@ThingworxServiceResult(name="result", description="TRUE if excecution was successfull.", baseType="BOOLEAN")
- 	public boolean addClient() throws Exception {
+	public int getOpenClientID() throws Exception {
+		//Check for free id
+		for(int i = 0; i<ConnectedClientsArr.length; i++) {
+			if(ConnectedClientsArr[i] == false)
+				return i;
+		}
+		//if no free id was found
+		return -1;
+	}
+	
+	/**
+	 * This method increments the ConnectedClient property. And returns ID of new Client.
+	 * 
+	 * @return Open ID of new Client.
+	 * @throws Exception
+	 * @see https://developer.thingworx.com/resources/guides/thingworx-java-sdk-quickstart/creating-data-model
+	 */
+	@ThingworxServiceDefinition(name="addClient", description="Increments the ClientsConnected Property of the ServerThing. And returns an open ID for the new Client.")
+	@ThingworxServiceResult(name="result", description="TRUE if excecution was successfull.", baseType="INTEGER")
+ 	public int addClient() throws Exception {
 		Object var = getClientProperty("ClientsConnected");
 		var=(Double)var+1;
 		setClientProperty("ClientsConnected", var);
 		
+		int ID = getOpenClientID();
+		ConnectedClientsArr[ID] = true;
+		
 		LOG.info("{} was set. New Value: {}", this.ServerName, var);
-		return true;
+		return ID;
 	}
-	
-	/** 
+
+	/**
 	 * This method increments the ConnectedClient property.
 	 * 
-	 * The following annotation makes a method available to the ThingWorx Server for remote invocation.  
-	 * URL: https://developer.thingworx.com/resources/guides/thingworx-java-sdk-quickstart/creating-data-model
+	 * @param ID if Client
+	 * @return TRUE if execution was successful
+	 * @throws Exception
+	 * @see: https://developer.thingworx.com/resources/guides/thingworx-java-sdk-quickstart/creating-data-model
 	 */
 	@ThingworxServiceDefinition(name="removeClient", description="Decrements the ClientsConnected Property of the ServerThing")
 	@ThingworxServiceResult(name="result", description="TRUE if excecution was successfull.", baseType="BOOLEAN")
- 	public boolean removeClient() throws Exception {
+ 	public boolean removeClient(
+ 			@ThingworxServiceParameter( name="ID", description="ID of Client.", baseType="INTEGER" ) Integer ID) throws Exception {
 		Object var = getClientProperty("ClientsConnected");
 		
 		if((double)var<1) {
@@ -209,7 +221,33 @@ public class ServerThing extends VirtualThing {
 		var=(Double)var-1;
 		setClientProperty("ClientsConnected", var);
 		
-		LOG.info("{} was set. New Value: {}", this.ServerName, var);
+		ConnectedClientsArr[--ID] = false;
+		
+		LOG.info("Client with ID {} was deleted.", ID);
+		return true;
+	}
+	
+	/**
+	 * This method deletes a ClientThing.
+	 * 
+	 * @param name Name of Client
+	 * @param ID ID of Client
+	 * @return TRUE if execution was successful
+	 * @throws Exception
+	 * @see https://developer.thingworx.com/resources/guides/thingworx-java-sdk-quickstart/creating-data-model
+	 */
+	@ThingworxServiceDefinition(name="DeleteClient", description="Deletes a ClientThing")
+	@ThingworxServiceResult(name="result", description="TRUE if excecution was successfull.", baseType="BOOLEAN")
+ 	public boolean DeleteClient(
+ 			@ThingworxServiceParameter( name="name", description="Name of Client.", baseType="STRING" ) String name,
+ 			@ThingworxServiceParameter( name="ID", description="ID of Client.", baseType="INTEGER" ) Integer ID) throws Exception {
+		
+		ValueCollection payload = new ValueCollection();
+		payload.put("name", new StringPrimitive(name));
+		payload.put("ID", new IntegerPrimitive(ID));
+		ClientHandle.invokeService(ThingworxEntityTypes.Resources, "EntityServices", "DeleteThing", payload, 10000);
+		ClientHandle.invokeService(ThingworxEntityTypes.Things, "ServerThing", "removeClient", payload, 10000);
+		
 		return true;
 	}
 }
