@@ -3,5 +3,8 @@
 	<classpathentry excluding="smartdoor/SimpleThingClient.java" kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/ThingWorx Java SDK"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Thingworx Java SDK"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/CommonTools"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Maven"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

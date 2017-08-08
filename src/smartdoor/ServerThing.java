@@ -18,6 +18,11 @@ import com.thingworx.types.primitives.IntegerPrimitive;
 import com.thingworx.types.primitives.NumberPrimitive;
 import com.thingworx.types.primitives.StringPrimitive;
 
+import ch.maxant.rules.CompileException;
+import ch.maxant.rules.DuplicateNameException;
+import ch.maxant.rules.NoMatchingRuleFoundException;
+import ch.maxant.rules.ParseException;
+
 /**
 Aspects:	
   	dataChangeType:
@@ -75,6 +80,7 @@ public class ServerThing extends VirtualThing {
 	private final String ServerName;
 	private final ConnectedThingClient ClientHandle;
 	private boolean[] ConnectedClientsArr = new boolean[10];
+	private RuleEngine eng = new RuleEngine();
 
 	/**
 	 * A custom constructor. The Constructor is needed to call initializeFromAnnotations,
@@ -193,7 +199,7 @@ public class ServerThing extends VirtualThing {
 		setClientProperty("ClientsConnected", var);
 		
 		int ID = getOpenClientID();
-		ConnectedClientsArr[ID] = true;
+		this.ConnectedClientsArr[ID]=true;
 		
 		LOG.info("{} was set. New Value: {}", this.ServerName, var);
 		return ID;
@@ -210,21 +216,22 @@ public class ServerThing extends VirtualThing {
 	@ThingworxServiceDefinition(name="removeClient", description="Decrements the ClientsConnected Property of the ServerThing")
 	@ThingworxServiceResult(name="result", description="TRUE if excecution was successfull.", baseType="BOOLEAN")
  	public boolean removeClient(
- 			@ThingworxServiceParameter( name="ID", description="ID of Client.", baseType="INTEGER" ) Integer ID) throws Exception {
+ 			@ThingworxServiceParameter( name="ID", description="ID of Client.", baseType="INTEGER" ) int ID) throws Exception {
+		boolean success=true;
 		Object var = getClientProperty("ClientsConnected");
 		
 		if((double)var<1) {
 			LOG.info("All Clients are disconnected.");
-			return false;
+			success=false;
 		}
+		else
+			var=(Double)var-1;
+			setClientProperty("ClientsConnected", var);
 		
-		var=(Double)var-1;
-		setClientProperty("ClientsConnected", var);
-		
-		ConnectedClientsArr[--ID] = false;
+		this.ConnectedClientsArr[(ID-1)] = false;
 		
 		LOG.info("Client with ID {} was deleted.", ID);
-		return true;
+		return success;
 	}
 	
 	/**
@@ -250,4 +257,22 @@ public class ServerThing extends VirtualThing {
 		
 		return true;
 	}
-}
+	
+	@ThingworxServiceDefinition(name="checkRules", description="Checks rules for entering person")
+	@ThingworxServiceResult(name="result", description="TRUE if person is granted access.", baseType="BOOLEAN")
+ 	public boolean checkRules(
+ 			@ThingworxServiceParameter( name="name", description="Name of Client.", baseType="STRING" ) String name){	
+
+		try {
+			eng.checkRules(name);
+		} catch (NoMatchingRuleFoundException e) {
+			LOG.info("No matching rule was found for {}.", name);
+			return false;
+		} catch (Exception e) {
+			LOG.error("Error occured in checkRules: {}.", e);	
+			return false;
+		}
+		
+		return true;
+ 	}
+ }
