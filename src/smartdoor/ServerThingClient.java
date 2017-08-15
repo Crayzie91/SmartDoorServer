@@ -54,17 +54,7 @@ public class ServerThingClient extends ConnectedThingClient {
 				LOG.info("The client is now connected.");
 								
 				// Create a new VirtualThing to connect to a thing on the Thingworx platform
-				ServerThing thing = new ServerThing(ThingName, "A basic server thing", client);
-				
-				// Create the FileTransferThing to handle data in the repository
-//				FileTransferThing transfer = new FileTransferThing(RepositoryName, client);
-//				String timeStamp = new SimpleDateFormat("ddMM_HHmm").format(Calendar.getInstance().getTime());			
-//				transfer.createFolder("/"+ThingName);
-//				transfer.uploadImage("/"+ThingName+"/"+timeStamp+".jpg", "./Images/Test.jpg");
-//				File image = transfer.downloadImage("/"+ThingName+"/"+timeStamp+".jpg", "./Images/Downloads/"+timeStamp+".jpg");
-//				transfer.getLinktoFile("/"+ThingName, "/"+ThingName+"/"+timeStamp+".jpg");
-//				transfer.deleteFolder("/");
-				
+				ServerThing thing = new ServerThing(ThingName, "A basic server thing", client);	
 				
 				// Bind the VirtualThing to the client. This will tell the Platform that
 				// the RemoteThing is now connected and that it is ready to receive requests.

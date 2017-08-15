@@ -5,15 +5,21 @@ import org.slf4j.LoggerFactory;
 
 import com.thingworx.communications.client.ConnectedThingClient;
 import com.thingworx.communications.client.things.VirtualThing;
+import com.thingworx.metadata.DataShapeDefinition;
+import com.thingworx.metadata.FieldDefinition;
 import com.thingworx.metadata.PropertyDefinition;
 import com.thingworx.metadata.annotations.ThingworxPropertyDefinition;
 import com.thingworx.metadata.annotations.ThingworxPropertyDefinitions;
 import com.thingworx.metadata.annotations.ThingworxServiceDefinition;
 import com.thingworx.metadata.annotations.ThingworxServiceParameter;
 import com.thingworx.metadata.annotations.ThingworxServiceResult;
+import com.thingworx.metadata.collections.FieldDefinitionCollection;
 import com.thingworx.relationships.RelationshipTypes.ThingworxEntityTypes;
+import com.thingworx.types.BaseTypes;
+import com.thingworx.types.InfoTable;
 import com.thingworx.types.collections.ValueCollection;
 import com.thingworx.types.primitives.IPrimitiveType;
+import com.thingworx.types.primitives.InfoTablePrimitive;
 import com.thingworx.types.primitives.IntegerPrimitive;
 import com.thingworx.types.primitives.NumberPrimitive;
 import com.thingworx.types.primitives.StringPrimitive;
@@ -66,7 +72,8 @@ Aspects:
 			                    		  "isPersistent:FALSE", 
 			                    		  "isReadOnly:FALSE", 
 			                    		  "pushType:ALWAYS", 
-			                              "defaultValue:0"}),
+			                              "defaultValue:0"})//,
+	//@ThingworxPropertyDefinition(name="ConnectedClientsInfo2", description="The number of deliveries the truck has made.", baseType="INFOTABLE", aspects={"isReadOnly:false"}),
 })
 
 /**
@@ -77,9 +84,7 @@ Aspects:
 public class ServerThing extends VirtualThing {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ServerThing.class);
-	private final String ServerName;
-	private final ConnectedThingClient ClientHandle;
-	private boolean[] ConnectedClientsArr = new boolean[10];
+	private InfoTable ConnectedClientsInfo = new InfoTable(getDataShapeDefinition("SmartDoorClientDataShape"));
 	private RuleEngine eng = new RuleEngine();
 
 	/**
@@ -95,9 +100,17 @@ public class ServerThing extends VirtualThing {
 	 */
 	public ServerThing(String name, String description, ConnectedThingClient client) {
 		super(name, description, client);
-		ServerName = name;
-		ClientHandle=client;
 		this.initializeFromAnnotations();
+		
+		// Data Shape definition that is used by the delivery stop event
+		// The event only has one field, the message
+        FieldDefinitionCollection fields = new FieldDefinitionCollection();
+        fields.addFieldDefinition(new FieldDefinition("ID", BaseTypes.INTEGER));
+        fields.addFieldDefinition(new FieldDefinition("name", BaseTypes.STRING));
+        fields.addFieldDefinition(new FieldDefinition("Location", BaseTypes.STRING));
+        defineDataShapeDefinition("ClientEntryShape", fields);
+        
+        ConnectedClientsInfo = new InfoTable(getDataShapeDefinition("ClientEntryShape"));
 	}
 	
 	/**	
@@ -118,8 +131,9 @@ public class ServerThing extends VirtualThing {
 	 * 
 	 * @see VirtualThing#processScanRequest()
 	 */
+
 	@Override
-	public void processScanRequest() {
+	public void processScanRequest() {	
 		try {
 			this.updateSubscribedProperties(1000);
 			this.updateSubscribedEvents(1000);
@@ -150,7 +164,7 @@ public class ServerThing extends VirtualThing {
 	 */
 	public Object getClientProperty(String PropertyName) {
 		Object var = getProperty(PropertyName).getValue().getValue();	
-		LOG.info("{} was set. New Value: {}", this.ServerName, var);
+		LOG.info("{} was set. New Value: {}", this.getBindingName(), var);
 		return var;
 	}
 	
@@ -164,7 +178,7 @@ public class ServerThing extends VirtualThing {
 	 */
 	public void setClientProperty(String PropertyName, Object value) throws Exception{
 		setProperty(PropertyName, value);		
-		LOG.info("{} was set. New Value: {}", this.ServerName, value);
+		LOG.info("{} was set. New Value: {}", this.getBindingName(), value);
 	}
 	
 	/**
@@ -174,64 +188,99 @@ public class ServerThing extends VirtualThing {
 	 * @throws Exception
 	 * @see https://developer.thingworx.com/resources/guides/thingworx-java-sdk-quickstart/creating-data-model
 	 */
-	public int getOpenClientID() throws Exception {
-		//Check for free id
-		for(int i = 0; i<ConnectedClientsArr.length; i++) {
-			if(ConnectedClientsArr[i] == false)
-				return i;
+	@ThingworxServiceDefinition(name="getOpenClientID", description="Returns an open ID for the new Client.")
+	@ThingworxServiceResult(name="result", description="Open ID for new Client.", baseType="INTEGER")
+ 	public int getOpenClientID() throws Exception {
+		int ID=1;
+		ValueCollection filter=new ValueCollection();
+		filter.put("name", new StringPrimitive("ClientThing_"+ID));
+		//Check for free id	
+		for(;ConnectedClientsInfo.find(filter)!=null;) {
+			ID++;
+			filter.put("name", new StringPrimitive("ClientThing_"+ID));
 		}
-		//if no free id was found
-		return -1;
+		
+		return ID;
 	}
 	
 	/**
 	 * This method increments the ConnectedClient property. And returns ID of new Client.
 	 * 
-	 * @return Open ID of new Client.
+	 * @return Open ID of new Client or -1 if function failed
 	 * @throws Exception
 	 * @see https://developer.thingworx.com/resources/guides/thingworx-java-sdk-quickstart/creating-data-model
 	 */
-	@ThingworxServiceDefinition(name="addClient", description="Increments the ClientsConnected Property of the ServerThing. And returns an open ID for the new Client.")
-	@ThingworxServiceResult(name="result", description="TRUE if excecution was successfull.", baseType="INTEGER")
- 	public int addClient() throws Exception {
-		Object var = getClientProperty("ClientsConnected");
-		var=(Double)var+1;
-		setClientProperty("ClientsConnected", var);
+	@ThingworxServiceDefinition(name="addClient", description="Increments the ClientsConnected Property of the ServerThing. And returns ID of the new Client.")
+	@ThingworxServiceResult(name="result", description="ID of created client.", baseType="INTEGER")
+ 	public int addClient(
+ 			@ThingworxServiceParameter( name="ID", description="Name of Client.", baseType="INTEGER" ) Integer ID,
+ 			@ThingworxServiceParameter( name="name", description="Name of Client.", baseType="STRING" ) String name,
+ 			@ThingworxServiceParameter( name="Location", description="Location of Client.", baseType="STRING") String loc) throws Exception {
 		
-		int ID = getOpenClientID();
-		this.ConnectedClientsArr[ID]=true;
+		ValueCollection payload = new ValueCollection();
+		payload.put("ID", new IntegerPrimitive(ID));
+		payload.put("name", new StringPrimitive(name));
+		payload.put("Location", new StringPrimitive(loc));
 		
-		LOG.info("{} was set. New Value: {}", this.ServerName, var);
+		try {
+			ConnectedClientsInfo.addRow(payload);
+			setClientProperty("ClientsConnected", ConnectedClientsInfo.getLength());
+		} catch (Exception e) {
+			LOG.error("Error occured in addClient: {}.", e);
+			return -1;
+		}
+			
+		LOG.info("Client {} was added.", name);
 		return ID;
+	}
+	
+	@ThingworxServiceDefinition(name="createClient", description="Creates a ClientThing")
+	@ThingworxServiceResult(name="result", description="TRUE if excecution was successfull.", baseType="BOOLEAN")
+ 	public boolean createClient(
+ 			@ThingworxServiceParameter( name="name", description="Name of Client.", baseType="STRING" ) String name,
+ 			@ThingworxServiceParameter( name="description", description="Description for client.", baseType="STRING" ) String desc,
+ 			@ThingworxServiceParameter( name="thingTemplateName", description="Template for ClientThing.", baseType="STRING") String template) throws Exception {
+		
+		try {
+			ValueCollection payload = new ValueCollection();
+			payload.put("name", new StringPrimitive(name));
+			payload.put("description", new StringPrimitive(desc));
+			payload.put("thingTemplateName", new StringPrimitive(template));
+			
+			this.getClient().invokeService(ThingworxEntityTypes.Resources, "EntityServices", "CreateThing", payload, 10000);	
+			
+		} catch (Exception e) {
+			LOG.error("Error occured in DeleteClient: {}.", e);
+			return false;
+		}		
+		return true;
 	}
 
 	/**
 	 * This method increments the ConnectedClient property.
 	 * 
 	 * @param ID if Client
-	 * @return TRUE if execution was successful
+	 * @return New Number of connected Clients or -1 if function failed
 	 * @throws Exception
 	 * @see: https://developer.thingworx.com/resources/guides/thingworx-java-sdk-quickstart/creating-data-model
 	 */
 	@ThingworxServiceDefinition(name="removeClient", description="Decrements the ClientsConnected Property of the ServerThing")
-	@ThingworxServiceResult(name="result", description="TRUE if excecution was successfull.", baseType="BOOLEAN")
- 	public boolean removeClient(
- 			@ThingworxServiceParameter( name="ID", description="ID of Client.", baseType="INTEGER" ) int ID) throws Exception {
-		boolean success=true;
-		Object var = getClientProperty("ClientsConnected");
+	@ThingworxServiceResult(name="result", description="New Number of connected Clients.", baseType="INTEGER")
+ 	public int removeClient(
+ 			@ThingworxServiceParameter( name="ID", description="ID of Client.", baseType="INTEGER" ) Integer ID) throws Exception {
 		
-		if((double)var<1) {
-			LOG.info("All Clients are disconnected.");
-			success=false;
+		try {
+			ValueCollection filter=new ValueCollection();
+			filter.put("ID", new IntegerPrimitive(ID));
+			ConnectedClientsInfo.delete(filter);
+			setClientProperty("ClientsConnected", ConnectedClientsInfo.getLength());
+		} catch (Exception e) {
+			LOG.error("Error occured in removeClient: {}.", e);
+			return -1;
 		}
-		else
-			var=(Double)var-1;
-			setClientProperty("ClientsConnected", var);
-		
-		this.ConnectedClientsArr[(ID-1)] = false;
-		
+				
 		LOG.info("Client with ID {} was deleted.", ID);
-		return success;
+		return ConnectedClientsInfo.getLength();
 	}
 	
 	/**
@@ -243,18 +292,22 @@ public class ServerThing extends VirtualThing {
 	 * @throws Exception
 	 * @see https://developer.thingworx.com/resources/guides/thingworx-java-sdk-quickstart/creating-data-model
 	 */
-	@ThingworxServiceDefinition(name="DeleteClient", description="Deletes a ClientThing")
+	@ThingworxServiceDefinition(name="deleteClient", description="Deletes a ClientThing")
 	@ThingworxServiceResult(name="result", description="TRUE if excecution was successfull.", baseType="BOOLEAN")
- 	public boolean DeleteClient(
+ 	public boolean deleteClient(
  			@ThingworxServiceParameter( name="name", description="Name of Client.", baseType="STRING" ) String name,
  			@ThingworxServiceParameter( name="ID", description="ID of Client.", baseType="INTEGER" ) Integer ID) throws Exception {
 		
-		ValueCollection payload = new ValueCollection();
-		payload.put("name", new StringPrimitive(name));
-		payload.put("ID", new IntegerPrimitive(ID));
-		ClientHandle.invokeService(ThingworxEntityTypes.Resources, "EntityServices", "DeleteThing", payload, 10000);
-		ClientHandle.invokeService(ThingworxEntityTypes.Things, "ServerThing", "removeClient", payload, 10000);
-		
+		try {
+			ValueCollection payload = new ValueCollection();
+			payload.put("name", new StringPrimitive(name));
+			payload.put("ID", new IntegerPrimitive(ID));
+			this.getClient().invokeService(ThingworxEntityTypes.Resources, "EntityServices", "DeleteThing", payload, 10000);
+			this.getClient().invokeService(ThingworxEntityTypes.Things, "ServerThing", "removeClient", payload, 10000);
+		} catch (Exception e) {
+			LOG.error("Error occured in DeleteClient: {}.", e);
+			return false;
+		}		
 		return true;
 	}
 	
@@ -275,4 +328,10 @@ public class ServerThing extends VirtualThing {
 		
 		return true;
  	}
+	
+	@ThingworxServiceDefinition(name="getConnectedClients", description="Returns a Infotable of all connected clients.")
+	@ThingworxServiceResult(name="result", description="List of connected Clients.", baseType="INFOTABLE")
+ 	public InfoTable getConnectedClients(){
+		return ConnectedClientsInfo;
+		}
  }

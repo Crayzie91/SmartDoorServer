@@ -46,7 +46,9 @@ public class RuleEngine {
 	
 	RuleEngine(){
 		Rule Whitelist = new Rule("Whitelist", "input.PersonName==\"Alice\"", "Whitelist", 1, "ch.maxant.produkte", null);
-		RuleSet = Arrays.asList(Whitelist);
+		Rule Surname = new Rule("Whitelist", "input.SurName==\"Mustermann\"", "Whitelist", 1, "ch.maxant.produkte", null);
+		
+		RuleSet = Arrays.asList(Whitelist,Surname);
 	}
 	
 	/**
