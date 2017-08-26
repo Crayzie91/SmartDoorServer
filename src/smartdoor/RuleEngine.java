@@ -1,5 +1,6 @@
 package smartdoor;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -46,7 +47,7 @@ public class RuleEngine {
 	
 	RuleEngine(){
 		Rule Whitelist = new Rule("Whitelist", "input.PersonName==\"Alice\"", "Whitelist", 1, "ch.maxant.produkte", null);
-		Rule Surname = new Rule("Whitelist", "input.SurName==\"Mustermann\"", "Whitelist", 1, "ch.maxant.produkte", null);
+		Rule Surname = new Rule("Surname", "input.PersonSurname==\"Mustermann\"", "Surname", 1, "ch.maxant.produkte", null);
 		
 		RuleSet = Arrays.asList(Whitelist,Surname);
 	}
@@ -58,10 +59,19 @@ public class RuleEngine {
 	 * @param condition
 	 * @return
 	 */
-	public boolean addRule(String name,String condition) {
+	public int addRule(String name,String condition) {
+		condition = condition.replaceAll("Person", "input.Person");
 		Rule CustomRule = new Rule(name, condition, name, 1, "ch.maxant.produkte", null);
-		return RuleSet.add(CustomRule);
+		try {
+		ArrayList<Rule> var = new ArrayList<Rule>(RuleSet);
+		var.add(CustomRule);
+		RuleSet=var;
+		}catch(Exception e) {
+			System.out.println(e);
+		}
+		return RuleSet.size();
 	}
+	
 
 	/**
 	 *

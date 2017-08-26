@@ -268,11 +268,14 @@ public class ServerThing extends VirtualThing {
 	@ThingworxServiceResult(name="result", description="New Number of connected Clients.", baseType="INTEGER")
  	public int removeClient(
  			@ThingworxServiceParameter( name="ID", description="ID of Client.", baseType="INTEGER" ) Integer ID) throws Exception {
+		int var=0;
 		
 		try {
-			ValueCollection filter=new ValueCollection();
-			filter.put("ID", new IntegerPrimitive(ID));
-			ConnectedClientsInfo.delete(filter);
+			
+			for (var=0; ConnectedClientsInfo.getRow(var).get("ID").getValue() != ID;var++) {
+			}
+			ConnectedClientsInfo.removeRow(var);
+
 			setClientProperty("ClientsConnected", ConnectedClientsInfo.getLength());
 		} catch (Exception e) {
 			LOG.error("Error occured in removeClient: {}.", e);
@@ -302,8 +305,8 @@ public class ServerThing extends VirtualThing {
 			ValueCollection payload = new ValueCollection();
 			payload.put("name", new StringPrimitive(name));
 			payload.put("ID", new IntegerPrimitive(ID));
-			this.getClient().invokeService(ThingworxEntityTypes.Resources, "EntityServices", "DeleteThing", payload, 10000);
 			this.getClient().invokeService(ThingworxEntityTypes.Things, "ServerThing", "removeClient", payload, 10000);
+			this.getClient().invokeService(ThingworxEntityTypes.Resources, "EntityServices", "DeleteThing", payload, 10000);
 		} catch (Exception e) {
 			LOG.error("Error occured in DeleteClient: {}.", e);
 			return false;
@@ -327,6 +330,15 @@ public class ServerThing extends VirtualThing {
 		}
 		
 		return true;
+ 	}
+	
+	@ThingworxServiceDefinition(name="addRule", description="Adds rule to engine")
+	@ThingworxServiceResult(name="result", description="New Number of Rules", baseType="INTEGER")
+ 	public int addRule(
+ 			@ThingworxServiceParameter( name="name", description="Name of rule.", baseType="STRING" ) String name,
+ 			@ThingworxServiceParameter( name="condition", description="Condition of rule.", baseType="STRING" ) String condition){	
+
+		return eng.addRule(name.toString(), condition.toString());
  	}
 	
 	@ThingworxServiceDefinition(name="getConnectedClients", description="Returns a Infotable of all connected clients.")
