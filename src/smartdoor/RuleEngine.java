@@ -11,12 +11,10 @@ public class RuleEngine {
 
 	public class Person{
 		private String PersonName, PersonSurname;
-		private int age;
 		
 		public Person(String name, String surname){
 			setPersonName(name);
 			setPersonSurname(surname);
-			setAge(20);
 		}
 
 		public String getPersonSurname() {
@@ -25,14 +23,6 @@ public class RuleEngine {
 
 		public void setPersonSurname(String personSurname) {
 			PersonSurname = personSurname;
-		}
-
-		public int getAge() {
-			return age;
-		}
-
-		public void setAge(int age) {
-			this.age = age;
 		}
 
 		public String getPersonName() {

@@ -1,9 +1,5 @@
 package smartdoor;
 
-import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +12,6 @@ public class ServerThingClient extends ConnectedThingClient {
 	private static final Logger LOG = LoggerFactory.getLogger(ServerThingClient.class);
 	
 	private static String ThingName = "ServerThing";
-	private static String RepositoryName = "SmartDoorRepository";
 
 	public ServerThingClient(ClientConfigurator config) throws Exception {
 		super(config);

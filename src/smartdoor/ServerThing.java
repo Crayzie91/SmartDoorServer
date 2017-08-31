@@ -73,7 +73,6 @@ Aspects:
 			                    		  "isReadOnly:FALSE", 
 			                    		  "pushType:ALWAYS", 
 			                              "defaultValue:0"})//,
-	//@ThingworxPropertyDefinition(name="ConnectedClientsInfo2", description="The number of deliveries the truck has made.", baseType="INFOTABLE", aspects={"isReadOnly:false"}),
 })
 
 /**
@@ -234,8 +233,17 @@ public class ServerThing extends VirtualThing {
 		return ID;
 	}
 	
+	/**
+	 * This method creates a new client in the platform.
+	 * 
+	 * @param name Name of new Client
+	 * @param desc Description of new CLient
+	 * @param template Name of template to create client from
+	 * @return TRUE if execution was successful
+	 * @throws Exception
+	 */
 	@ThingworxServiceDefinition(name="createClient", description="Creates a ClientThing")
-	@ThingworxServiceResult(name="result", description="TRUE if excecution was successfull.", baseType="BOOLEAN")
+	@ThingworxServiceResult(name="result", description="TRUE if excecution was successful.", baseType="BOOLEAN")
  	public boolean createClient(
  			@ThingworxServiceParameter( name="name", description="Name of Client.", baseType="STRING" ) String name,
  			@ThingworxServiceParameter( name="description", description="Description for client.", baseType="STRING" ) String desc,
