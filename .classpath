@@ -21,7 +21,7 @@
 	<classpathentry kind="lib" path="C:/Users/Kevin/TW_Download_Java SDK/lib/thingworx-common-java-sdk-6.0.2.server.build.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Kevin/TW_Download_Java SDK/lib/thingworx-communications-client-java-sdk-6.0.2.server.build.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Kevin/TW_Download_Java SDK/lib/thingworx-java-sdk-java-sdk-6.0.2.server.build-javadoc.jar"/>
-	<classpathentry kind="lib" path="D:/Dokumente/GitHub/SmartDoorServer/trunk/src/commons-pool2-2.4.2/commons-pool2-2.4.2.jar"/>
-	<classpathentry kind="lib" path="D:/Dokumente/GitHub/SmartDoorServer/trunk/src/commons-pool2-2.4.2/commons-pool2-2.4.2-javadoc.jar"/>
+	<classpathentry kind="lib" path="src/commons-pool2-2.4.2/commons-pool2-2.4.2-javadoc.jar"/>
+	<classpathentry kind="lib" path="src/commons-pool2-2.4.2/commons-pool2-2.4.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
