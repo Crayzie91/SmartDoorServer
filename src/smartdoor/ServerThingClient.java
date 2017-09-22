@@ -19,12 +19,17 @@ public class ServerThingClient extends ConnectedThingClient {
 	
 	/*
 	 * URL: https://developer.thingworx.com/resources/guides/thingworx-java-sdk-tutorial/understanding-example-client-connection
+	 * @param args CLI arguments 
+     *              [0] Ip of Server 
+     *              [1] AppKey
 	 */
 	public static void main(String[] args) {
 	
 		ClientConfigurator config = new ClientConfigurator();
-		String uri="http://34.252.164.220:80/Thingworx/WS";
-		String AppKey="ce22e9e4-2834-419c-9656-ef9f844c784c";
+		//String uri="http://34.252.164.220:80/Thingworx/WS";
+        String uri="http://"+args[0]+":80/Thingworx/WS";
+        //String AppKey="ce22e9e4-2834-419c-9656-ef9f844c784c";
+        String AppKey=args[1];
 	
 		// Set the URI of the server that we are going to connect to
 		config.setUri(uri);

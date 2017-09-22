@@ -3,7 +3,7 @@
 	<classpathentry excluding="smartdoor/SimpleThingClient.java" kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/ThingWorx Java SDK"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Common Tools"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.USER_LIBRARY/Common Tools"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Maven"/>
 	<classpathentry kind="lib" path="C:/Users/Kevin/TW_Download_Java SDK/lib/commons-codec-1.9.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Kevin/TW_Download_Java SDK/lib/commons-logging-1.2.jar"/>
